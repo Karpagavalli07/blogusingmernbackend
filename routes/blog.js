@@ -85,16 +85,25 @@ router.put("/:id", authMiddleware, async (req, res) => {
 // Delete Blog (only author)
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+    console.log("Delete request for blog ID:", req.params.id);
+    console.log("User ID from token:", req.user.id);
+    
     const blog = await Blog.findById(req.params.id);
     if (!blog) return res.status(404).json({ message: "Blog not found" });
 
+    console.log("Blog author ID:", blog.author.toString());
+    console.log("Comparing:", blog.author.toString(), "with", req.user.id);
+
     if (blog.author.toString() !== req.user.id) {
+      console.log("Authorization failed");
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    await blog.remove();
-    res.json({ message: "Blog deleted" });
+    console.log("Authorization successful, deleting blog...");
+    await Blog.findByIdAndDelete(req.params.id);
+    res.json({ message: "Blog deleted successfully" });
   } catch (err) {
+    console.error("Delete error:", err);
     res.status(500).json({ error: err.message });
   }
 });
