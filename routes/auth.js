@@ -33,23 +33,54 @@ router.post("/register", async (req, res) => {
 // LOGIN
 router.post("/login", async (req, res) => {
   try {
+    console.log("Login attempt received:", { email: req.body.email });
+    
     const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ 
+        message: "Email and password are required" 
+      });
+    }
 
     // check if user exists
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found please register" });
+    if (!user) {
+      console.log("User not found:", email);
+      return res.status(400).json({ message: "User not found please register" });
+    }
+
+    console.log("User found, checking password...");
 
     // check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Wrong Password" });
+    if (!isMatch) {
+      console.log("Password mismatch for user:", email);
+      return res.status(400).json({ message: "Wrong Password" });
+    }
+
+    console.log("Password verified, generating JWT...");
 
     // create JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(
+      { id: user._id }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: "1h" }
+    );
 
-    res.json({ token });
+    console.log("Login successful for user:", email);
+    res.json({ 
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
 
